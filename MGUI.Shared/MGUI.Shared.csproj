@@ -1,8 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>net10.0;net10.0-android</TargetFrameworks>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <!-- Content is built by the consuming app (linked MonoGameContentReference);
+         the auto-included build here would race it on the shared intermediate dir -->
+    <EnableMGCBItems>false</EnableMGCBItems>
   </PropertyGroup>
+  <ItemGroup Condition="$(TargetFramework.Contains('-android'))">
+    <!-- Content items (own sources + package contentFiles) are unsupported in Android
+         libraries (XA0101); the consuming app builds the content via MGCB -->
+    <Content Remove="@(Content)" />
+  </ItemGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <NoWarn>1701;1702;1573;1591</NoWarn>
   </PropertyGroup>
@@ -13,7 +21,10 @@
     <PackageReference Include="MonoGame.Content.Builder.Task" />
     <PackageReference Include="MonoGame.Extended" />
     <PackageReference Include="MonoGame.Extended.Content.Pipeline" />
-    <PackageReference Include="MonoGame.Framework.DesktopGL">
+    <PackageReference Include="MonoGame.Framework.DesktopGL" Condition="!$(TargetFramework.Contains('-android'))">
+      <PrivateAssets>All</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="MonoGame.Framework.Android" Condition="$(TargetFramework.Contains('-android'))">
       <PrivateAssets>All</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Prism.Core" />
