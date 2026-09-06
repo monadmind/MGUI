@@ -17,5 +17,7 @@
       <PrivateAssets>All</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Prism.Core" />
+    <!-- Lifts MonoGame.Extended's Newtonsoft.Json 12.0.3 (a known vulnerability) to the patched release. -->
+    <PackageReference Include="Newtonsoft.Json" />
   </ItemGroup>
 </Project>

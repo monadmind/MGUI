@@ -229,7 +229,9 @@ namespace MGUI.Core.UI
                 try { tcs.SetResult(func()); }
                 catch (Exception e) { tcs.SetException(e); }
             });
-            thread.SetApartmentState(ApartmentState.STA);
+            // Apartment states exist only on Windows (CA1416); elsewhere the thread runs as is.
+            if (OperatingSystem.IsWindows())
+                thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
             return tcs.Task;
         }

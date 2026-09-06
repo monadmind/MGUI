@@ -94,8 +94,9 @@ namespace MGUI.Core.UI
         /// <summary>
         /// Re-resolves all four font-style handles from the currently active <see cref="ITextEngine"/>
         /// and invalidates both the layout and the self-measurement cache.<para/>
-        /// Called by <see cref="MGDesktop.RecalculateTextLayouts"/> after a runtime engine switch so
-        /// that new engine metrics (e.g. different scale factors) are reflected immediately.
+        /// Called by the <see cref="MGDesktop"/>'s handler of <see cref="MainRenderer.TextEngineChanged"/>
+        /// after a runtime engine switch so that new engine metrics (e.g. different scale factors)
+        /// are reflected immediately.
         /// </summary>
         internal void RefreshTextEngine()
         {
