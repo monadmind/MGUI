@@ -454,20 +454,20 @@ A simple registration window created with MGUI:
 MGUI can also parse and render your XAML markup at runtime using the MGXAMLDesigner control:
 ![XAML Designer](assets/samples/Sample_XAML_Designer_Window.gif)
   
-# Fna port
+# Zna port
 
-This branch renders through `Monadmind.Gfx.Fna` (D3D12) instead of MonoGame's GraphicsDevice; MonoGame keeps the game loop, window, input, content loading and math.
+This branch renders through `Monadmind.Gfx.Zna` (D3D12) instead of MonoGame's GraphicsDevice; MonoGame keeps the game loop, window, input, content loading and math.
 Inside its host repository the build finds `GfxRoot` (the Monadmind.Gfx checkout) in the host's `Directory.Build.props`; a standalone checkout passes it: `dotnet build -p:GfxRoot=<path to Monadmind.Gfx>\`.
 
-- **Types**: each project's `GlobalUsings.cs` aliases the device-bound names (`GraphicsDevice`, `SpriteBatch`, `SpriteFont`, `Texture2D`, `RenderTarget2D`, `Effect`, `PrimitiveBatch`, ...) to the Fna types; `Microsoft.Xna.Framework.Graphics` still supplies the enums and state objects.
-- **Host**: `MGUI.Samples/Game1.cs` is the model. `Initialize` creates the `GfxDevice` and the Fna `GraphicsDevice` on `MonoGameHost.GetHwnd(Window)`, `BeginDraw` calls `BeginFrame`, `EndDraw` calls `Present` without `base.EndDraw()`, and `WindowResizeTracker` follows the window. The Getting Started example below predates the port.
+- **Types**: each project's `GlobalUsings.cs` aliases the device-bound names (`GraphicsDevice`, `SpriteBatch`, `SpriteFont`, `Texture2D`, `RenderTarget2D`, `Effect`, `PrimitiveBatch`, ...) to the Zna types; `Microsoft.Xna.Framework.Graphics` still supplies the enums and state objects.
+- **Host**: `MGUI.Samples/Game1.cs` is the model. `Initialize` creates the `GfxDevice` and the Zna `GraphicsDevice` on `MonoGameHost.GetHwnd(Window)`, `BeginDraw` calls `BeginFrame`, `EndDraw` calls `Present` without `base.EndDraw()`, and `WindowResizeTracker` follows the window. The Getting Started example below predates the port.
 - **API changes** (only where a MonoGame device object crossed it):
-  - `IRenderHost.GraphicsDevice`, `MainRenderer.GraphicsDevice`/`GD`, `View.GraphicsDevice` and `DrawTransaction.GD` are the Fna device; `GameRenderHost<T>(Game, GraphicsDevice)` takes it.
+  - `IRenderHost.GraphicsDevice`, `MainRenderer.GraphicsDevice`/`GD`, `View.GraphicsDevice` and `DrawTransaction.GD` are the Zna device; `GameRenderHost<T>(Game, GraphicsDevice)` takes it.
   - `FontManager(GraphicsDevice, ContentManager, string)` and `FontSet(GraphicsDevice, ContentManager, string)`.
   - `ContentUtils.GetTexture(GraphicsDevice, ContentManager, string)`; `ContentUtils.GetEffect(GraphicsDevice, ContentManager, string)`, which loads `<Content>/<name>.gfxfx`.
-  - `DrawTransaction.PD` is `MGUI.Shared.Rendering.PrimitiveDrawing`, MGUI's port of MonoGame.Extended's (v3.8, MIT) over the Fna `PrimitiveBatch`.
+  - `DrawTransaction.PD` is `MGUI.Shared.Rendering.PrimitiveDrawing`, MGUI's port of MonoGame.Extended's (v3.8, MIT) over the Zna `PrimitiveBatch`.
   - The sprite shapes (`FillRectangle`, `DrawLine`, `DrawPolygon`, `DrawCircle`, `DrawPoint`) are `MGUI.Shared.Rendering.SpriteBatchShapeExtensions`, ported from MonoGame.Extended's `ShapeExtensions`.
-  - Textures and fonts load through `TextureLoader.Load` and `SpriteFont.Load` (MonoGame's `ContentManager` reads them, the loaders copy them to the Fna device).
+  - Textures and fonts load through `TextureLoader.Load` and `SpriteFont.Load` (MonoGame's `ContentManager` reads them, the loaders copy them to the Zna device).
 - **MGUI.FontStashSharp** is not ported (FontStashSharp.MonoGame draws through MonoGame's `SpriteBatch` and textures): it is excluded from the solution build, the samples no longer use it, and `MGUI.Tests` leaves out its tests.
 
 **Parity gate.** `MGUI.Samples --capture <dir> [--frames N]` (`SampleCapture`) opens a 1280×720 back buffer, runs on synthetic time with no input, shows six samples beside the Compendium one at a time (text, images, nine-slice brushes, borders, scroll bars, a list view, progress bars, a focused text box with its caret, an open context menu), saves each sample's last frame as `<dir>/<sample>.png` and exits. `MGUI.Samples/Reference/` holds the captures of the MonoGame GL build (commit 4e6780e, before the port). From this directory:

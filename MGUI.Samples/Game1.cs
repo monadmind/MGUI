@@ -2,7 +2,7 @@ using MGUI.Core.UI;
 using MGUI.Shared.Rendering;
 using Microsoft.Xna.Framework;
 using Monadmind.Gfx.D3D12;
-using Monadmind.Gfx.Fna;
+using Monadmind.Gfx.Zna;
 using Monadmind.Gfx.Rhi;
 using System;
 using System.Collections.Generic;
@@ -11,13 +11,13 @@ using GfxDevice = Monadmind.Gfx.GfxDevice;
 namespace MGUI.Samples
 {
     /// <summary>
-    /// The samples' host, and the model for a MonoGame game that renders MGUI through Monadmind.Gfx.Fna (D3D12).
+    /// The samples' host, and the model for a MonoGame game that renders MGUI through Monadmind.Gfx.Zna (D3D12).
     /// <para>MonoGame keeps the game loop, the window (GraphicsDeviceManager: size, fullscreen, vsync), input and
     /// content loading; MonoGame's own GraphicsDevice still exists, but only for the ContentManager, whose textures and
-    /// fonts the Fna loaders copy. Rendering goes to the Fna <see cref="GraphicsDevice"/> (the global alias), which
+    /// fonts the Zna loaders copy. Rendering goes to the Zna <see cref="GraphicsDevice"/> (the global alias), which
     /// presents into MonoGame's SDL window through a D3D12 swapchain:</para>
     /// <list type="bullet">
-    /// <item><c>Initialize</c> creates the GfxDevice and the Fna device on the window's HWND
+    /// <item><c>Initialize</c> creates the GfxDevice and the Zna device on the window's HWND
     /// (<see cref="MonoGameHost.GetHwnd"/>: on DesktopGL <c>Window.Handle</c> is the SDL window, not an HWND).</item>
     /// <item><c>BeginDraw</c> opens the frame, <c>EndDraw</c> presents it and does not call <c>base.EndDraw()</c>,
     /// which would swap MonoGame's GL buffer.</item>
@@ -25,7 +25,7 @@ namespace MGUI.Samples
     /// GraphicsDeviceManager.DeviceReset, and a per-frame check).</item>
     /// </list>
     /// Inside this class the simple name <c>GraphicsDevice</c> in an expression is <see cref="Game.GraphicsDevice"/>,
-    /// MonoGame's; the Fna device is <see cref="Device"/>.
+    /// MonoGame's; the Zna device is <see cref="Device"/>.
     /// </summary>
     public class Game1 : Game, IObservableUpdate
     {
@@ -81,7 +81,7 @@ namespace MGUI.Samples
             base.Initialize();
         }
 
-        /// <summary>The GfxDevice (D3D12 on the high-performance GPU; the debug layer in Debug builds) and the Fna device
+        /// <summary>The GfxDevice (D3D12 on the high-performance GPU; the debug layer in Debug builds) and the Zna device
         /// presenting into the window, with the back buffer MonoGame's GraphicsDeviceManager was configured for.</summary>
         private void CreateDevice()
         {
@@ -135,7 +135,7 @@ namespace MGUI.Samples
             base.Draw(gameTime);
         }
 
-        /// <summary>Presents through the Fna device. No <c>base.EndDraw()</c>: it would swap MonoGame's GL buffer.</summary>
+        /// <summary>Presents through the Zna device. No <c>base.EndDraw()</c>: it would swap MonoGame's GL buffer.</summary>
         protected override void EndDraw()
         {
             Device.Present();

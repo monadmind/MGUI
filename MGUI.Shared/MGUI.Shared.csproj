@@ -23,6 +23,6 @@
   <ItemGroup>
     <!-- The device layer MGUI renders through (D3D12). GfxRoot is the Monadmind.Gfx checkout; the host repo's
          Directory.Build.props sets it, a standalone build passes -p:GfxRoot=<path>\. -->
-    <ProjectReference Include="$(GfxRoot)src\Monadmind.Gfx.Fna\Monadmind.Gfx.Fna.csproj" />
+    <ProjectReference Include="$(GfxRoot)src\Monadmind.Gfx.Zna\Monadmind.Gfx.Zna.csproj" />
   </ItemGroup>
 </Project>
