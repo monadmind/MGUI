@@ -6,7 +6,7 @@ using System;
 namespace MGUI.Shared.Rendering
 {
     /// <summary>
-    /// MonoGame.Extended's <c>VectorDraw.PrimitiveDrawing</c> (v3.8, MIT), ported to the Fna
+    /// MonoGame.Extended's <c>VectorDraw.PrimitiveDrawing</c> (v3.8, MIT), ported to the Zna
     /// <see cref="PrimitiveBatch"/>: points, segments, polygons, rectangles, circles and ellipses as vertex-coloured
     /// line and triangle lists. Solid shapes are triangulated with MonoGame.Extended's <see cref="Triangulator"/>, as
     /// in the original.

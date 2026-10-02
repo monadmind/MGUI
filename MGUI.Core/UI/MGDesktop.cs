@@ -369,10 +369,10 @@ namespace MGUI.Core.UI
             OverlayWindow.CanChangeContent = false;
 
             #region Sample Icons
-            Texture2D CheckMark_64x64 = Monadmind.Gfx.Fna.TextureLoader.Load(Renderer.GraphicsDevice, Renderer.Content, Path.Combine("Icons", "CheckMark_64x64"));
+            Texture2D CheckMark_64x64 = Monadmind.Gfx.Zna.TextureLoader.Load(Renderer.GraphicsDevice, Renderer.Content, Path.Combine("Icons", "CheckMark_64x64"));
             Resources.AddTexture("CheckMark_64x64", new(CheckMark_64x64));
 
-            Texture2D AngryMeteor_MilitaryIconsSet = Monadmind.Gfx.Fna.TextureLoader.Load(Renderer.GraphicsDevice, Renderer.Content, Path.Combine("Icons", "AngryMeteor_MilitaryIconsSet"));
+            Texture2D AngryMeteor_MilitaryIconsSet = Monadmind.Gfx.Zna.TextureLoader.Load(Renderer.GraphicsDevice, Renderer.Content, Path.Combine("Icons", "AngryMeteor_MilitaryIconsSet"));
             Resources.AddTexture("AngryMeteor", new(AngryMeteor_MilitaryIconsSet));
 
             int TextureTopMargin = 6;

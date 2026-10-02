@@ -7,7 +7,7 @@ using System.Collections.Generic;
 namespace MGUI.Shared.Rendering
 {
     /// <summary>
-    /// The shape drawing MGUI uses from MonoGame.Extended's <c>ShapeExtensions</c> (v3.8, MIT), ported to the Fna
+    /// The shape drawing MGUI uses from MonoGame.Extended's <c>ShapeExtensions</c> (v3.8, MIT), ported to the Zna
     /// <see cref="SpriteBatch"/>: filled rectangles, lines, polygons and circles as stretched and rotated sprites of a
     /// 1×1 white texture, with the original's maths.
     /// </summary>

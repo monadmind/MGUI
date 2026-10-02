@@ -188,7 +188,7 @@
     <ProjectReference Include="..\MGUI.Core\MGUI.Core.csproj" />
     <ProjectReference Include="..\MGUI.Shared\MGUI.Shared.csproj" />
     <!-- The device layer (see MGUI.Shared.csproj) and its D3D12 backend. -->
-    <ProjectReference Include="$(GfxRoot)src\Monadmind.Gfx.Fna\Monadmind.Gfx.Fna.csproj" />
+    <ProjectReference Include="$(GfxRoot)src\Monadmind.Gfx.Zna\Monadmind.Gfx.Zna.csproj" />
     <ProjectReference Include="$(GfxRoot)src\Monadmind.Gfx.D3D12\Monadmind.Gfx.D3D12.csproj" />
   </ItemGroup>
   <Target Name="RestoreDotnetTools" BeforeTargets="Restore">

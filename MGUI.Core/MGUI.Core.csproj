@@ -25,6 +25,6 @@
   <ItemGroup>
     <ProjectReference Include="..\MGUI.Shared\MGUI.Shared.csproj" />
     <!-- The device layer MGUI renders through (see MGUI.Shared.csproj). -->
-    <ProjectReference Include="$(GfxRoot)src\Monadmind.Gfx.Fna\Monadmind.Gfx.Fna.csproj" />
+    <ProjectReference Include="$(GfxRoot)src\Monadmind.Gfx.Zna\Monadmind.Gfx.Zna.csproj" />
   </ItemGroup>
 </Project>

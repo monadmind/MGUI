@@ -6,7 +6,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-using Monadmind.Gfx.Fna;
+using Monadmind.Gfx.Zna;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -36,7 +36,7 @@ namespace MGUI.Shared.Rendering
     /// <summary>For a concrete implementation, consider using <see cref="GameRenderHost{TObservableGame}"/></summary>
     public interface IRenderHost : IRenderViewport, IObservableUpdate, IServiceProvider
     {
-        /// <summary>The Monadmind.Gfx.Fna device MGUI draws with; the host game creates it (MonoGame's own
+        /// <summary>The Monadmind.Gfx.Zna device MGUI draws with; the host game creates it (MonoGame's own
         /// GraphicsDevice only loads content).</summary>
         public GraphicsDevice GraphicsDevice { get; }
         public MouseState GetMouseState();
@@ -62,7 +62,7 @@ namespace MGUI.Shared.Rendering
 
         private Rectangle PreviousClientBounds;
 
-        /// <param name="GraphicsDevice">The Fna device the game created on its window (see MGUI.Samples' Game1).</param>
+        /// <param name="GraphicsDevice">The Zna device the game created on its window (see MGUI.Samples' Game1).</param>
         public GameRenderHost(TObservableGame Game, GraphicsDevice GraphicsDevice)
         {
             this.Game = Game;
