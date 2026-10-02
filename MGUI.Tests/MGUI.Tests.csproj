@@ -20,13 +20,12 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="MonoGame.Framework.DesktopGL" />
-    <PackageReference Include="FontStashSharp.MonoGame" />
     <ProjectReference Include="..\MGUI.Core\MGUI.Core.csproj" />
-    <ProjectReference Include="..\MGUI.FontStashSharp\MGUI.FontStashSharp.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="..\MGUI.Core\Content\Fonts\ttf\arial.ttf" Link="Fonts\arial.ttf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <!-- MGUI.FontStashSharp draws through MonoGame's SpriteBatch and is not ported to Monadmind.Gfx.Fna (README, "Fna
+         port"); its tests are left out with it. -->
+    <Compile Remove="Text\FSSMeasureDrawConsistencyTests.cs" />
+    <None Include="Text\FSSMeasureDrawConsistencyTests.cs" />
   </ItemGroup>
 </Project>

@@ -195,15 +195,16 @@ namespace MGUI.Samples
         {
             private readonly Game1 Game;
 
-            public RenderHost(Game1 Game)
+            public RenderHost(Game1 Game, GraphicsDevice GraphicsDevice)
             {
                 this.Game = Game;
+                this.GraphicsDevice = GraphicsDevice;
                 Game.PreviewUpdate += (sender, e) => PreviewUpdate?.Invoke(Game, e);
                 Game.EndUpdate += (sender, e) => EndUpdate?.Invoke(Game, e);
             }
 
             public Rectangle GetBounds() => new(0, 0, Width, Height);
-            public GraphicsDevice GraphicsDevice => Game.GraphicsDevice;
+            public GraphicsDevice GraphicsDevice { get; }
             public MouseState GetMouseState() => new(-10000, -10000, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released);
             public KeyboardState GetKeyboardState() => default;
             public object GetService(Type serviceType) => Game.Services.GetService(serviceType);

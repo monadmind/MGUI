@@ -28,11 +28,12 @@ namespace MGUI.Shared.Text
                 return _FontsByFamily.Values.First();
         }
 
-        public FontManager(ContentManager Content, string DefaultFontFamily)
+        /// <param name="GraphicsDevice">The device the fonts' textures are uploaded to.</param>
+        public FontManager(GraphicsDevice GraphicsDevice, ContentManager Content, string DefaultFontFamily)
         {
             this.DefaultFontFamily = DefaultFontFamily;
             List<string> BuiltInFontFamilyNames = new() { "Arial" };
-            _FontsByFamily = BuiltInFontFamilyNames.Select(x => new FontSet(Content, x)).ToDictionary(x => x.Name);
+            _FontsByFamily = BuiltInFontFamilyNames.Select(x => new FontSet(GraphicsDevice, Content, x)).ToDictionary(x => x.Name);
         }
 
         /// <param name="DesiredFontSize">The desired height, in points, of the returned <see cref="SpriteFont"/> <paramref name="SF"/></param>

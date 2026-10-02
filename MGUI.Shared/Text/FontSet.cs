@@ -78,7 +78,9 @@ namespace MGUI.Shared.Text
         /// To programmatically generate .spritefont files in the desired file name format, consider using:<br/>
         /// <see cref="SpritefontGenerator.GenerateDefault(ContentManager, string, string, string)"/><br/>
         /// and then adding the generated .spritefont files to your MonoGame Content</summary>
-        public FontSet(ContentManager Content, string FontName)
+        /// <param name="GraphicsDevice">The device the fonts' textures are uploaded to (MonoGame's ContentManager loads
+        /// them; <see cref="SpriteFont.Load"/> converts them).</param>
+        public FontSet(GraphicsDevice GraphicsDevice, ContentManager Content, string FontName)
         {
             Name = FontName;
 
@@ -114,7 +116,7 @@ namespace MGUI.Shared.Text
                         }
 
                         string RelativeFilePath = Path.Combine(RelativeFolderPath, Path.GetFileNameWithoutExtension(FontFilename));
-                        SpriteFont SF = Content.Load<SpriteFont>(RelativeFilePath);
+                        SpriteFont SF = SpriteFont.Load(GraphicsDevice, Content, RelativeFilePath);
                         Variations.Add(Data.Value.Styles, SF);
                     }
                 }

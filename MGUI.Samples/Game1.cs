@@ -1,31 +1,43 @@
-﻿using FontStashSharp;
 using MGUI.Core.UI;
-using MGUI.Core.UI.Brushes.Fill_Brushes;
-using MGUI.FontStashSharp;
-using MGUI.Shared.Helpers;
-using MGUI.Shared.Input.Keyboard;
 using MGUI.Shared.Rendering;
-using MGUI.Shared.Text;
-using MGUI.Shared.Text.Engines;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Content;
-using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
+using Monadmind.Gfx.D3D12;
+using Monadmind.Gfx.Fna;
+using Monadmind.Gfx.Rhi;
 using System;
-using System.Diagnostics;
-using System.IO;
+using System.Collections.Generic;
+using GfxDevice = Monadmind.Gfx.GfxDevice;
 
 namespace MGUI.Samples
 {
+    /// <summary>
+    /// The samples' host, and the model for a MonoGame game that renders MGUI through Monadmind.Gfx.Fna (D3D12).
+    /// <para>MonoGame keeps the game loop, the window (GraphicsDeviceManager: size, fullscreen, vsync), input and
+    /// content loading; MonoGame's own GraphicsDevice still exists, but only for the ContentManager, whose textures and
+    /// fonts the Fna loaders copy. Rendering goes to the Fna <see cref="GraphicsDevice"/> (the global alias), which
+    /// presents into MonoGame's SDL window through a D3D12 swapchain:</para>
+    /// <list type="bullet">
+    /// <item><c>Initialize</c> creates the GfxDevice and the Fna device on the window's HWND
+    /// (<see cref="MonoGameHost.GetHwnd"/>: on DesktopGL <c>Window.Handle</c> is the SDL window, not an HWND).</item>
+    /// <item><c>BeginDraw</c> opens the frame, <c>EndDraw</c> presents it and does not call <c>base.EndDraw()</c>,
+    /// which would swap MonoGame's GL buffer.</item>
+    /// <item><see cref="WindowResizeTracker"/> follows the client size (Window.ClientSizeChanged,
+    /// GraphicsDeviceManager.DeviceReset, and a per-frame check).</item>
+    /// </list>
+    /// Inside this class the simple name <c>GraphicsDevice</c> in an expression is <see cref="Game.GraphicsDevice"/>,
+    /// MonoGame's; the Fna device is <see cref="Device"/>.
+    /// </summary>
     public class Game1 : Game, IObservableUpdate
     {
-        private GraphicsDeviceManager _graphics;
-        private SpriteBatch _spriteBatch;
+        private readonly GraphicsDeviceManager _graphics;
+
+        private GfxDevice Gfx;
+        /// <summary>The device MGUI draws with.</summary>
+        private GraphicsDevice Device;
+        private WindowResizeTracker Resize;
 
         private MainRenderer MGUIRenderer { get; set; }
         private MGDesktop Desktop { get; set; }
-
-        private KeyboardState _prevKeyboardState;
 
         /// <summary>The deterministic capture mode (<c>--capture</c>), or null.</summary>
         private readonly SampleCapture Capture;
@@ -55,13 +67,11 @@ namespace MGUI.Samples
             _graphics.PreferredBackBufferHeight = Capture == null ? 900 : SampleCapture.Height;
             _graphics.ApplyChanges();
 
-            _spriteBatch = new SpriteBatch(GraphicsDevice);
+            CreateDevice();
 
-            IRenderHost Host = Capture == null ? new GameRenderHost<Game1>(this) : new SampleCapture.RenderHost(this);
+            IRenderHost Host = Capture == null ? new GameRenderHost<Game1>(this, Device) : new SampleCapture.RenderHost(this, Device);
             MGUIRenderer = new(Host);
             Desktop = new(MGUIRenderer);
-
-            InitializeTextEngines();
 
             //  This is a dialog with toggle buttons to launch other dialogs
             Compendium Compendium = new(Content, Desktop);
@@ -71,73 +81,28 @@ namespace MGUI.Samples
             base.Initialize();
         }
 
-        /// <summary>Default SpriteFont backend (Press F1 to toggle the active text-rendering engine)</summary>
-        private SpriteFontTextEngine SpriteFontEngine;
-        /// <summary>Optional FontStashSharp backend. (Press F1 to toggle the active text-rendering engine)</summary>
-        private FontStashSharpTextEngine FontStashSharpEngine;
-
-        private void InitializeTextEngines()
+        /// <summary>The GfxDevice (D3D12 on the high-performance GPU; the debug layer in Debug builds) and the Fna device
+        /// presenting into the window, with the back buffer MonoGame's GraphicsDeviceManager was configured for.</summary>
+        private void CreateDevice()
         {
-            //  You only need 1 textengine, but this sample project creates multiple engines
-            //  that you can toggle between by pressing F1 for demonstration purposes
+            nint Hwnd = MonoGameHost.GetHwnd(Window);
+            (int Width, int Height) = MonoGameHost.GetClientSize(Hwnd);
 
-            SpriteFontEngine = new SpriteFontTextEngine(Desktop.FontManager);
+            DeviceOptions Options = new() { Adapter = AdapterPreference.HighPerformance };
+#if DEBUG
+            Options.Debug = true;
+#endif
+            Gfx = new GfxDevice(Options, o => new D3D12Device(o));
 
-            //  Initialize the FontStashSharp text engine
-            try
+            Microsoft.Xna.Framework.Graphics.PresentationParameters PP = GraphicsDevice.PresentationParameters;
+            Device = new GraphicsDevice(Gfx, Hwnd, Width, Height, new GraphicsDeviceOptions
             {
-                string ttfDir = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, @"Content\Fonts\ttf"));
-
-                FontStashSharpEngine = new FontStashSharpTextEngine();
-
-                //  For each font you want to use:
-                //  1. Read the bytes data from the .ttf file
-                //  2. Create a FontSystem and add the data to the system
-                //  3. Add the FontSystem to the engine (be sure to use the AddFontSystem method overload that takes in the byte[] data)
-
-                const string FamilyName = "Arial";
-
-                byte[] arialBytes = File.ReadAllBytes(Path.Combine(ttfDir, "arial.ttf"));
-                FontSystem arialNormal = new FontSystem();
-                arialNormal.AddFont(arialBytes);
-                FontStashSharpEngine.AddFontSystem(FamilyName, CustomFontStyles.Normal, arialNormal, arialBytes);
-
-                FontSystem arialBold = new FontSystem();
-                arialBold.AddFont(File.ReadAllBytes(Path.Combine(ttfDir, "arialbd.ttf")));
-                FontStashSharpEngine.AddFontSystem(FamilyName, CustomFontStyles.Bold, arialBold);
-
-                FontSystem arialItalic = new FontSystem();
-                arialItalic.AddFont(File.ReadAllBytes(Path.Combine(ttfDir, "ariali.ttf")));
-                FontStashSharpEngine.AddFontSystem(FamilyName, CustomFontStyles.Italic, arialItalic);
-
-                // Calibrate per-size advance widths to match SpriteFontTextEngine exactly.
-                // Must be called after FontSizeScale is set (via AddFontSystem overload above).
-                FontStashSharpEngine.MatchSpriteFontSizing(Desktop.FontManager);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"FSS engine init failed: {ex.Message}");
-                FontStashSharpEngine = null;
-            }
-
-            Desktop.TextEngine = SpriteFontEngine;
-        }
-
-        /// <summary>Toggles the active text rendering engine between <see cref="SpriteFontTextEngine"/> and <see cref="FontStashSharpTextEngine"/></summary>
-        public void ToggleActiveTextEngine()
-        {
-            if (FontStashSharpEngine == null)
-                return;
-
-            ITextEngine CurrentEngine = Desktop.TextEngine;
-            ITextEngine NewEngine = CurrentEngine is SpriteFontTextEngine ? FontStashSharpEngine : SpriteFontEngine;
-            Desktop.TextEngine = NewEngine;
-            Debug.WriteLine($"[TextEngine] switched to {Desktop.TextEngine.GetType().Name}");
-        }
-
-        protected override void LoadContent()
-        {
-            _spriteBatch = new SpriteBatch(GraphicsDevice);
+                VSync = _graphics.SynchronizeWithVerticalRetrace,
+                MultiSampleCount = PP.MultiSampleCount,
+                RenderTargetUsage = PP.RenderTargetUsage,
+                DepthStencilFormat = PP.DepthStencilFormat,
+            });
+            Resize = new WindowResizeTracker(Window, _graphics, Device, Hwnd);
         }
 
         protected override void Update(GameTime gameTime)
@@ -145,32 +110,64 @@ namespace MGUI.Samples
             Capture?.BeforeUpdate();
             PreviewUpdate?.Invoke(this, Capture?.NextUpdateTime() ?? gameTime.TotalGameTime);
 
-            //  F1 toggles between SpriteFontTextEngine and FontStashSharpTextEngine
-            KeyboardState ks = Keyboard.GetState();
-            if (Capture == null && ks.IsKeyDown(Keys.F1) && !_prevKeyboardState.IsKeyDown(Keys.F1))
-                ToggleActiveTextEngine();
-            _prevKeyboardState = ks;
-
             Desktop.Update();
             Capture?.AfterUpdate();
-
-            // TODO: Add your update logic here
 
             base.Update(gameTime);
 
             EndUpdate?.Invoke(this, EventArgs.Empty);
         }
 
+        protected override bool BeginDraw()
+        {
+            Resize.Update();    //  resizes between frames only
+            Device.BeginFrame();
+            return true;
+        }
+
         protected override void Draw(GameTime gameTime)
         {
-            GraphicsDevice.Clear(Color.CornflowerBlue);
-
-            // TODO: Add your drawing code here
+            Device.Clear(Color.CornflowerBlue);
 
             Desktop.Draw();
-            if (Capture != null && Capture.AfterDraw(GraphicsDevice))
+            if (Capture != null && Capture.AfterDraw(Device))
                 Exit();
             base.Draw(gameTime);
+        }
+
+        /// <summary>Presents through the Fna device. No <c>base.EndDraw()</c>: it would swap MonoGame's GL buffer.</summary>
+        protected override void EndDraw()
+        {
+            Device.Present();
+#if DEBUG
+            ReportDebugMessages();
+#endif
+        }
+
+        private readonly HashSet<string> ReportedDebugMessages = new();
+
+        /// <summary>Writes each distinct message of the D3D12 debug layer to the console once.</summary>
+        private void ReportDebugMessages()
+        {
+            if (Gfx.Rhi is D3D12Device D3D12)
+            {
+                foreach (string Message in D3D12.GetDebugMessages())
+                {
+                    if (ReportedDebugMessages.Add(Message))
+                        Console.Error.WriteLine($"D3D12 {Message}");
+                }
+            }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                Resize?.Dispose();
+                Device?.Dispose();  //  before the window goes: the swapchain is released while the HWND exists
+                Gfx?.Dispose();
+            }
+            base.Dispose(disposing);
         }
     }
 }

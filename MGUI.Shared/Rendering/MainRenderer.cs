@@ -6,7 +6,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-using MonoGame.Extended.VectorDraw;
+using Monadmind.Gfx.Fna;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -36,6 +36,8 @@ namespace MGUI.Shared.Rendering
     /// <summary>For a concrete implementation, consider using <see cref="GameRenderHost{TObservableGame}"/></summary>
     public interface IRenderHost : IRenderViewport, IObservableUpdate, IServiceProvider
     {
+        /// <summary>The Monadmind.Gfx.Fna device MGUI draws with; the host game creates it (MonoGame's own
+        /// GraphicsDevice only loads content).</summary>
         public GraphicsDevice GraphicsDevice { get; }
         public MouseState GetMouseState();
         public KeyboardState GetKeyboardState();
@@ -48,7 +50,7 @@ namespace MGUI.Shared.Rendering
 
         public Rectangle GetBounds() => new(0, 0, Game.Window.ClientBounds.Width, Game.Window.ClientBounds.Height);
 
-        public GraphicsDevice GraphicsDevice => Game.GraphicsDevice;
+        public GraphicsDevice GraphicsDevice { get; }
 
         public MouseState GetMouseState() => Mouse.GetState();
         public KeyboardState GetKeyboardState() => Keyboard.GetState();
@@ -60,9 +62,11 @@ namespace MGUI.Shared.Rendering
 
         private Rectangle PreviousClientBounds;
 
-        public GameRenderHost(TObservableGame Game)
+        /// <param name="GraphicsDevice">The Fna device the game created on its window (see MGUI.Samples' Game1).</param>
+        public GameRenderHost(TObservableGame Game, GraphicsDevice GraphicsDevice)
         {
             this.Game = Game;
+            this.GraphicsDevice = GraphicsDevice ?? throw new ArgumentNullException(nameof(GraphicsDevice));
             this.Game.PreviewUpdate += (sender, e) => PreviewUpdate?.Invoke(Game, e);
             this.Game.EndUpdate += (sender, e) => EndUpdate?.Invoke(Game, e);
 
@@ -129,11 +133,11 @@ namespace MGUI.Shared.Rendering
             SpriteBatch = new(GraphicsDevice);
             PrimitiveBatch = new(GraphicsDevice, 1024);
             Content = new(Host, "Content");
-            FontManager = new(Content, "Arial");
+            FontManager = new(GraphicsDevice, Content, "Arial");
             TextEngine = new SpriteFontTextEngine(FontManager);
             Input = new();
 
-            ScrollMarker = Content.Load<Texture2D>(Path.Combine("Icons", "ScrollMarker"));
+            ScrollMarker = TextureLoader.Load(GraphicsDevice, Content, Path.Combine("Icons", "ScrollMarker"));
 
             Host.PreviewUpdate += (sender, e) =>
             {
