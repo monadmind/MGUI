@@ -64,7 +64,8 @@ namespace MGUI.Shared.Helpers
         //  The checkerboard texture is currently just used as a background for the current layer of the mapmaker
         public static Texture2D CreateCheckerboardTexture(SpriteBatch SpriteBatch, int TextureSize, Color Color1, Color Color2)
         {
-            RenderTarget2D OldRenderTarget = SpriteBatch.GraphicsDevice.GetRenderTargets().First().RenderTarget as RenderTarget2D;
+            RenderTargetBinding[] OldBindings = SpriteBatch.GraphicsDevice.GetRenderTargets();
+            RenderTarget2D OldRenderTarget = OldBindings.Length == 0 ? null : OldBindings[0].RenderTarget as RenderTarget2D;
             RenderTarget2D Checkerboard = new RenderTarget2D(SpriteBatch.GraphicsDevice, TextureSize, TextureSize);
             SpriteBatch.GraphicsDevice.SetRenderTarget(Checkerboard);
 

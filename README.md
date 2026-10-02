@@ -454,6 +454,43 @@ A simple registration window created with MGUI:
 MGUI can also parse and render your XAML markup at runtime using the MGXAMLDesigner control:
 ![XAML Designer](assets/samples/Sample_XAML_Designer_Window.gif)
   
+# Fna port
+
+This branch renders through `Monadmind.Gfx.Fna` (D3D12) instead of MonoGame's GraphicsDevice; MonoGame keeps the game loop, window, input, content loading and math.
+Inside its host repository the build finds `GfxRoot` (the Monadmind.Gfx checkout) in the host's `Directory.Build.props`; a standalone checkout passes it: `dotnet build -p:GfxRoot=<path to Monadmind.Gfx>\`.
+
+- **Types**: each project's `GlobalUsings.cs` aliases the device-bound names (`GraphicsDevice`, `SpriteBatch`, `SpriteFont`, `Texture2D`, `RenderTarget2D`, `Effect`, `PrimitiveBatch`, ...) to the Fna types; `Microsoft.Xna.Framework.Graphics` still supplies the enums and state objects.
+- **Host**: `MGUI.Samples/Game1.cs` is the model. `Initialize` creates the `GfxDevice` and the Fna `GraphicsDevice` on `MonoGameHost.GetHwnd(Window)`, `BeginDraw` calls `BeginFrame`, `EndDraw` calls `Present` without `base.EndDraw()`, and `WindowResizeTracker` follows the window. The Getting Started example below predates the port.
+- **API changes** (only where a MonoGame device object crossed it):
+  - `IRenderHost.GraphicsDevice`, `MainRenderer.GraphicsDevice`/`GD`, `View.GraphicsDevice` and `DrawTransaction.GD` are the Fna device; `GameRenderHost<T>(Game, GraphicsDevice)` takes it.
+  - `FontManager(GraphicsDevice, ContentManager, string)` and `FontSet(GraphicsDevice, ContentManager, string)`.
+  - `ContentUtils.GetTexture(GraphicsDevice, ContentManager, string)`; `ContentUtils.GetEffect(GraphicsDevice, ContentManager, string)`, which loads `<Content>/<name>.gfxfx`.
+  - `DrawTransaction.PD` is `MGUI.Shared.Rendering.PrimitiveDrawing`, MGUI's port of MonoGame.Extended's (v3.8, MIT) over the Fna `PrimitiveBatch`.
+  - The sprite shapes (`FillRectangle`, `DrawLine`, `DrawPolygon`, `DrawCircle`, `DrawPoint`) are `MGUI.Shared.Rendering.SpriteBatchShapeExtensions`, ported from MonoGame.Extended's `ShapeExtensions`.
+  - Textures and fonts load through `TextureLoader.Load` and `SpriteFont.Load` (MonoGame's `ContentManager` reads them, the loaders copy them to the Fna device).
+- **MGUI.FontStashSharp** is not ported (FontStashSharp.MonoGame draws through MonoGame's `SpriteBatch` and textures): it is excluded from the solution build, the samples no longer use it, and `MGUI.Tests` leaves out its tests.
+
+**Parity gate.** `MGUI.Samples --capture <dir> [--frames N]` (`SampleCapture`) opens a 1280×720 back buffer, runs on synthetic time with no input, shows six samples beside the Compendium one at a time (text, images, nine-slice brushes, borders, scroll bars, a list view, progress bars, a focused text box with its caret, an open context menu), saves each sample's last frame as `<dir>/<sample>.png` and exits. `MGUI.Samples/Reference/` holds the captures of the MonoGame GL build (commit 4e6780e, before the port). From this directory:
+
+```
+dotnet build MGUI.Samples -c Debug
+MGUI.Samples\bin\Debug\net10.0-windows\MGUI.Samples.exe --capture out --frames 10
+pwsh ..\..\spikes\gfx-interop\compare-png.ps1 MGUI.Samples\Reference\<sample>.png out\<sample>.png
+```
+
+Results on 2026-10-02 (RGB levels, 1280×720 = 921 600 pixels). The reference ran on the laptop's Intel GPU (MonoGame GL's default there), the port on the NVIDIA RTX PRO 4000 (high-performance); the second set has the port on the Intel GPU too (`AdapterPreference.MinimumPower` in `Game1.CreateDevice`):
+
+| Sample | NVIDIA: max / mean / pixels differing | Intel: max / mean / pixels differing |
+|---|---|---|
+| FF7Inventory | 2 / 0.0023 / 0.642 % | 1 / 0.0000 / 1 pixel |
+| IFillBrush | 93 / 0.0221 / 0.238 % | 196 / 0.4767 / 2.584 % |
+| ListView | 1 / 0.0002 / 0.043 % | 0 (identical) |
+| ProgressBar | 1 / 0.0002 / 0.057 % | 60 / 0.0009 / 26 pixels |
+| TextBox | 1 / 0.0002 / 0.057 % | 0 (identical) |
+| ContextMenu | 175 / 0.0011 / 0.067 % | 238 / 0.0189 / 297 pixels |
+
+On the same GPU text, borders, list views, the caret and the context menu are bit-identical. Every larger difference is a point-sampled texture drawn at a scale that puts its samples exactly on texel edges (the nine-slice margins at 2:1, the scaled 16 px menu icons, the progress bars' texture brush): there GL and D3D12 round to opposite neighbouring texels (on Intel at every such sample, on NVIDIA at some). Nothing is missing, shifted, clipped, recoloured or differently blended. Captures are deterministic: repeated runs give identical files.
+
 # Getting Started:
 
 1. Clone this repo

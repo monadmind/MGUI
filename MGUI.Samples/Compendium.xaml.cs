@@ -19,6 +19,7 @@ using MGUI.Samples.Features;
 using MGUI.Shared.Helpers;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
+using Monadmind.Gfx.Fna;
 
 namespace MGUI.Samples
 {
@@ -77,6 +78,10 @@ namespace MGUI.Samples
 #endif
             }
         }
+
+        /// <summary>Loads a texture through <paramref name="Content"/> into the Fna device <paramref name="Desktop"/> draws with.</summary>
+        protected static Texture2D LoadTexture(ContentManager Content, MGDesktop Desktop, string Name)
+            => TextureLoader.Load(Desktop.Renderer.GraphicsDevice, Content, Name);
 
         protected static void OpenURL(string URL)
         {

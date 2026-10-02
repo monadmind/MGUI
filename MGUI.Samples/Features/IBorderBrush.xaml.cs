@@ -24,8 +24,8 @@ namespace MGUI.Samples.Features
             //  XAML uses named resources to reference Texture2D objects.
             //  Calling Desktop.Resources.AddTexture(...) allows us to initialize things like Images in XAML
             MGResources Resources = Desktop.Resources;
-            Texture2D BorderEdgeTexture1 = Content.Load<Texture2D>(Path.Combine("Border Textures", "1_RightEdge"));
-            Texture2D BorderCornerTexture1 = Content.Load<Texture2D>(Path.Combine("Border Textures", "1_BottomRightCorner"));
+            Texture2D BorderEdgeTexture1 = LoadTexture(Content, Desktop, Path.Combine("Border Textures", "1_RightEdge"));
+            Texture2D BorderCornerTexture1 = LoadTexture(Content, Desktop, Path.Combine("Border Textures", "1_BottomRightCorner"));
             Resources.AddTexture("BorderEdgeTexture1", new MGTextureData(BorderEdgeTexture1));
             Resources.AddTexture("BorderCornerTexture1", new MGTextureData(BorderCornerTexture1));
         }

@@ -284,10 +284,10 @@ namespace MGUI.Samples.Features
             MGResources Resources = Desktop.Resources;
 
             //  SourceMargin=52
-            Resources.AddTexture("Samples_9SliceTexture1", new MGTextureData(Content.Load<Texture2D>(Path.Combine("Brush Textures", "9SliceTexture-1"))));
+            Resources.AddTexture("Samples_9SliceTexture1", new MGTextureData(LoadTexture(Content, Desktop, Path.Combine("Brush Textures", "9SliceTexture-1"))));
 
             //  SourceMargin=40
-            Texture2D NineSliceTextureAtlas = Content.Load<Texture2D>(Path.Combine("Brush Textures", "9SliceTextures-2"));
+            Texture2D NineSliceTextureAtlas = LoadTexture(Content, Desktop, Path.Combine("Brush Textures", "9SliceTextures-2"));
             Resources.AddTexture("Samples_9SliceTexture2", new MGTextureData(NineSliceTextureAtlas, new Rectangle(136, 532, 128, 128)));
             Resources.AddTexture("Samples_9SliceTexture3", new MGTextureData(NineSliceTextureAtlas, new Rectangle(4, 400, 128, 128)));
             //Resources.AddTexture("9SliceTexture3", new MGTextureData(NineSliceTextureAtlas, new Rectangle(136, 532, 128, 128)));

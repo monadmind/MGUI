@@ -1,7 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <!-- Windows and x64: the samples host the D3D12 backend of Monadmind.Gfx. -->
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
     <RollForward>Major</RollForward>
     <PublishReadyToRun>false</PublishReadyToRun>
     <TieredCompilation>false</TieredCompilation>
@@ -170,6 +172,12 @@
   <ItemGroup>
     <None Include="..\MGUI.Core\Content\MGUI.Core.Content.mgcb" Link="Content\MGUI.Core.Content.mgcb" />
   </ItemGroup>
+  <!-- A host repository that turns off MonoGame's *.mgcb glob (EnableMGCBItems=false) builds no content for MGUI.Core
+       or the samples; build both here so the samples run. -->
+  <ItemGroup Condition="'$(EnableMGCBItems)' == 'false'">
+    <MonoGameContentReference Include="Content\Content.mgcb" />
+    <MonoGameContentReference Include="..\MGUI.Core\Content\MGUI.Core.Content.mgcb" Link="Content\MGUI.Core.Content.mgcb" />
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.VisualStudio.VsixColorCompiler" />
     <PackageReference Include="MonoGame.Framework.DesktopGL" />
@@ -179,7 +187,9 @@
   <ItemGroup>
     <ProjectReference Include="..\MGUI.Core\MGUI.Core.csproj" />
     <ProjectReference Include="..\MGUI.Shared\MGUI.Shared.csproj" />
-    <ProjectReference Include="..\MGUI.FontStashSharp\MGUI.FontStashSharp.csproj" />
+    <!-- The device layer (see MGUI.Shared.csproj) and its D3D12 backend. -->
+    <ProjectReference Include="$(GfxRoot)src\Monadmind.Gfx.Fna\Monadmind.Gfx.Fna.csproj" />
+    <ProjectReference Include="$(GfxRoot)src\Monadmind.Gfx.D3D12\Monadmind.Gfx.D3D12.csproj" />
   </ItemGroup>
   <Target Name="RestoreDotnetTools" BeforeTargets="Restore">
     <Message Text="Restoring dotnet tools" Importance="High" />
