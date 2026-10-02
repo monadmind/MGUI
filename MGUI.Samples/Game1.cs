@@ -27,27 +27,38 @@ namespace MGUI.Samples
 
         private KeyboardState _prevKeyboardState;
 
+        /// <summary>The deterministic capture mode (<c>--capture</c>), or null.</summary>
+        private readonly SampleCapture Capture;
+
         //  IObservableUpdate implementation
         public event EventHandler<TimeSpan> PreviewUpdate;
         public event EventHandler<EventArgs> EndUpdate;
 
-        public Game1()
+        public Game1(SampleCapture Capture = null)
         {
+            this.Capture = Capture;
             _graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
             IsMouseVisible = true;
-            Window.AllowUserResizing = true;
+            Window.AllowUserResizing = Capture == null;
+            if (Capture != null)
+            {
+                //  One update per frame, as fast as it goes; MGUI's clock is SampleCapture's.
+                IsFixedTimeStep = false;
+                _graphics.SynchronizeWithVerticalRetrace = false;
+            }
         }
 
         protected override void Initialize()
         {
-            _graphics.PreferredBackBufferWidth = 1600;
-            _graphics.PreferredBackBufferHeight = 900;
+            _graphics.PreferredBackBufferWidth = Capture == null ? 1600 : SampleCapture.Width;
+            _graphics.PreferredBackBufferHeight = Capture == null ? 900 : SampleCapture.Height;
             _graphics.ApplyChanges();
 
             _spriteBatch = new SpriteBatch(GraphicsDevice);
 
-            MGUIRenderer = new(new GameRenderHost<Game1>(this));
+            IRenderHost Host = Capture == null ? new GameRenderHost<Game1>(this) : new SampleCapture.RenderHost(this);
+            MGUIRenderer = new(Host);
             Desktop = new(MGUIRenderer);
 
             InitializeTextEngines();
@@ -55,6 +66,7 @@ namespace MGUI.Samples
             //  This is a dialog with toggle buttons to launch other dialogs
             Compendium Compendium = new(Content, Desktop);
             Compendium.Show();
+            Capture?.Begin(Compendium);
 
             base.Initialize();
         }
@@ -130,15 +142,17 @@ namespace MGUI.Samples
 
         protected override void Update(GameTime gameTime)
         {
-            PreviewUpdate?.Invoke(this, gameTime.TotalGameTime);
+            Capture?.BeforeUpdate();
+            PreviewUpdate?.Invoke(this, Capture?.NextUpdateTime() ?? gameTime.TotalGameTime);
 
             //  F1 toggles between SpriteFontTextEngine and FontStashSharpTextEngine
             KeyboardState ks = Keyboard.GetState();
-            if (ks.IsKeyDown(Keys.F1) && !_prevKeyboardState.IsKeyDown(Keys.F1))
+            if (Capture == null && ks.IsKeyDown(Keys.F1) && !_prevKeyboardState.IsKeyDown(Keys.F1))
                 ToggleActiveTextEngine();
             _prevKeyboardState = ks;
 
             Desktop.Update();
+            Capture?.AfterUpdate();
 
             // TODO: Add your update logic here
 
@@ -154,6 +168,8 @@ namespace MGUI.Samples
             // TODO: Add your drawing code here
 
             Desktop.Draw();
+            if (Capture != null && Capture.AfterDraw(GraphicsDevice))
+                Exit();
             base.Draw(gameTime);
         }
     }

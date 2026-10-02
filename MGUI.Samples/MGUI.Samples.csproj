@@ -170,6 +170,12 @@
   <ItemGroup>
     <None Include="..\MGUI.Core\Content\MGUI.Core.Content.mgcb" Link="Content\MGUI.Core.Content.mgcb" />
   </ItemGroup>
+  <!-- A host repository that turns off MonoGame's *.mgcb glob (EnableMGCBItems=false) builds no content for MGUI.Core
+       or the samples; build both here so the samples run. -->
+  <ItemGroup Condition="'$(EnableMGCBItems)' == 'false'">
+    <MonoGameContentReference Include="Content\Content.mgcb" />
+    <MonoGameContentReference Include="..\MGUI.Core\Content\MGUI.Core.Content.mgcb" Link="Content\MGUI.Core.Content.mgcb" />
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.VisualStudio.VsixColorCompiler" />
     <PackageReference Include="MonoGame.Framework.DesktopGL" />
