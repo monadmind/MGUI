@@ -343,30 +343,18 @@ namespace MGUI.Core.UI
         /// <summary>Convenience property that just returns <see cref="Resources"/>.<see cref="MGResources.DefaultTheme"/></summary>
         public MGTheme Theme => Resources.DefaultTheme;
 
-        public MGDesktop(MainRenderer Renderer)
+        /// <summary>The names <see cref="LoadSampleIcons"/> registered, so a reload can replace exactly those.</summary>
+        private List<string> _SampleIconNames;
+
+        /// <summary>The desktop's own textures from the content — the check mark, the icon sheet and its named cells —
+        /// replacing any loaded before: after a device rebuild (<see cref="RebindDevice"/>) the elements that show them
+        /// by name pick up the new textures through the resource events.</summary>
+        private void LoadSampleIcons()
         {
-            ApartmentState ThreadState = Thread.CurrentThread.GetApartmentState();
-            if (ThreadState != ApartmentState.STA)
-            {
-                Debug.WriteLine(
-                    $"WARNING: {nameof(MGUI)}.{nameof(Core)}.{nameof(UI)}.{nameof(MGDesktop)} is being instantiated from a thread whose {nameof(ApartmentState)}={ThreadState}. " +
-                    $"You may experience unforeseen issues when running from a non-{ApartmentState.STA} {nameof(ApartmentState)}. " +
-                    $"It is recommended to add the {nameof(STAThreadAttribute)} (\"[STAThread]\") to your program's main entry function to avoid issues."
-                );
-            }
-
-            this.Renderer = Renderer;
-            Windows = new();
-            Resources = new(new MGTheme(Renderer.FontManager.DefaultFontFamily));
-
-            OverlayWindow = new(this, 0, 0, ValidScreenBounds.Width, ValidScreenBounds.Height)
-            {
-                WindowStyle = WindowStyle.None,
-                AllowsClickThrough = true
-            };
-            OverlayHost = new(OverlayWindow) { Name = OverlayName };
-            OverlayWindow.SetContent(OverlayHost);
-            OverlayWindow.CanChangeContent = false;
+            if (_SampleIconNames != null)
+                foreach (string Name in _SampleIconNames)
+                    Resources.RemoveTexture(Name);
+            HashSet<string> Before = Resources.Textures.Keys.ToHashSet();
 
             #region Sample Icons
             Texture2D CheckMark_64x64 = Monadmind.Gfx.Zna.TextureLoader.Load(Renderer.GraphicsDevice, Renderer.Content, Path.Combine("Icons", "CheckMark_64x64"));
@@ -434,6 +422,45 @@ namespace MGUI.Core.UI
                 Resources.AddTexture(Name, TextureData);
             }
             #endregion Sample Icons
+            _SampleIconNames = Resources.Textures.Keys.Where(x => !Before.Contains(x)).ToList();
+        }
+
+        /// <summary>Moves the desktop onto the host's current device after the game rebuilt it: the renderer's batches,
+        /// fonts and caches (<see cref="MainRenderer.RebindDevice"/>) and the desktop's own textures, reloaded under their
+        /// names so the elements showing them refresh. Every window, control and value stays as it was. Textures the game
+        /// handed to elements directly (an <see cref="MGImage"/> over a render target) are the game's to replace.</summary>
+        public void RebindDevice()
+        {
+            Renderer.RebindDevice();
+            LoadSampleIcons();
+        }
+
+        public MGDesktop(MainRenderer Renderer)
+        {
+            ApartmentState ThreadState = Thread.CurrentThread.GetApartmentState();
+            if (ThreadState != ApartmentState.STA)
+            {
+                Debug.WriteLine(
+                    $"WARNING: {nameof(MGUI)}.{nameof(Core)}.{nameof(UI)}.{nameof(MGDesktop)} is being instantiated from a thread whose {nameof(ApartmentState)}={ThreadState}. " +
+                    $"You may experience unforeseen issues when running from a non-{ApartmentState.STA} {nameof(ApartmentState)}. " +
+                    $"It is recommended to add the {nameof(STAThreadAttribute)} (\"[STAThread]\") to your program's main entry function to avoid issues."
+                );
+            }
+
+            this.Renderer = Renderer;
+            Windows = new();
+            Resources = new(new MGTheme(Renderer.FontManager.DefaultFontFamily));
+
+            OverlayWindow = new(this, 0, 0, ValidScreenBounds.Width, ValidScreenBounds.Height)
+            {
+                WindowStyle = WindowStyle.None,
+                AllowsClickThrough = true
+            };
+            OverlayHost = new(OverlayWindow) { Name = OverlayName };
+            OverlayWindow.SetContent(OverlayHost);
+            OverlayWindow.CanChangeContent = false;
+
+            LoadSampleIcons();
 
             ToolTipShowDelay = DefaultToolTipShowDelay;
 

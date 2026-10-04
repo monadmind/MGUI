@@ -86,14 +86,14 @@ namespace MGUI.Shared.Rendering
 
         public GraphicsDevice GraphicsDevice => Host.GraphicsDevice;
         public GraphicsDevice GD => GraphicsDevice;
-        public SpriteBatch SpriteBatch { get; }
+        public SpriteBatch SpriteBatch { get; private set; }
         public SpriteBatch SB => SpriteBatch;
-        public PrimitiveBatch PrimitiveBatch { get; }
+        public PrimitiveBatch PrimitiveBatch { get; private set; }
         public PrimitiveBatch PB => PrimitiveBatch;
 
         public ContentManager Content { get; }
 
-        public FontManager FontManager { get; }
+        public FontManager FontManager { get; private set; }
 
         private ITextEngine _textEngine;
         /// <summary>
@@ -153,8 +153,37 @@ namespace MGUI.Shared.Rendering
             };
         }
 
+        /// <summary>Moves the renderer onto the host's current device after the game rebuilt it (the host's
+        /// <see cref="IRenderHost.GraphicsDevice"/> is the new one by now; the old device and everything on it are gone):
+        /// new batches, the fonts and the scroll marker loaded again, the cached solid-colour and circle textures dropped,
+        /// the text engine's font cache invalidated (a <see cref="SpriteFontTextEngine"/> takes the new font manager).
+        /// The element tree is untouched; <c>MGDesktop.RebindDevice</c> reloads the desktop's named textures.</summary>
+        public void RebindDevice()
+        {
+            SpriteBatch.Dispose();
+            PrimitiveBatch.Dispose();
+            SpriteBatch = new(GraphicsDevice);
+            PrimitiveBatch = new(GraphicsDevice, 1024);
+            FontManager = new(GraphicsDevice, Content, FontManager.DefaultFontFamily);
+            if (TextEngine is SpriteFontTextEngine engine)
+                engine.Rebind(FontManager);
+            else
+                TextEngine.InvalidateCache();
+            // Every text block caches its resolved fonts (their glyph textures were on the old device): the same
+            // event that follows a text-engine swap makes the desktop re-resolve them all.
+            TextEngineChanged?.Invoke(this, new EventArgs<ITextEngine>(TextEngine, TextEngine));
+            ScrollMarker.Dispose();
+            ScrollMarker = TextureLoader.Load(GraphicsDevice, Content, Path.Combine("Icons", "ScrollMarker"));
+            foreach (SolidColorTexture texture in SolidColorTextures.Values)
+                texture.Dispose();
+            SolidColorTextures.Clear();
+            foreach (Texture2D texture in CircleTextures.Values)
+                texture?.Dispose();
+            CircleTextures.Clear();
+        }
+
         #region Textures
-        public readonly Texture2D ScrollMarker;
+        public Texture2D ScrollMarker { get; private set; }
 
         #region Solid Color
         private readonly Dictionary<Color, SolidColorTexture> SolidColorTextures = new();
