@@ -40,7 +40,7 @@ namespace MGUI.Shared.Text.Engines
 
         // ── Fields ───────────────────────────────────────────────────────────────
 
-        private readonly FontManager _fontManager;
+        private FontManager _fontManager;
 
         /// <summary>Cache: FontSpec → ResolvedFont (+ embedded SpriteFontHandle as NativeFont).</summary>
         private readonly Dictionary<FontSpec, ResolvedFont> _cache = new();
@@ -52,6 +52,14 @@ namespace MGUI.Shared.Text.Engines
         public SpriteFontTextEngine(FontManager fontManager)
         {
             _fontManager = fontManager;
+        }
+
+        /// <summary>Resolves fonts from <paramref name="fontManager"/> from now on and drops every cached resolution:
+        /// the old fonts' textures live on a device that is gone (<see cref="MainRenderer.RebindDevice"/>).</summary>
+        public void Rebind(FontManager fontManager)
+        {
+            _fontManager = fontManager ?? throw new System.ArgumentNullException(nameof(fontManager));
+            InvalidateCache();
         }
 
         // ── ITextEngine ──────────────────────────────────────────────────────────
