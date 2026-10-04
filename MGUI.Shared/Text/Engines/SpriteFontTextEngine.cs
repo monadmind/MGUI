@@ -24,10 +24,14 @@ namespace MGUI.Shared.Text.Engines
             public int        FontHeight  { get; }   // Heights[size]
             public Vector2    Origin      { get; }   // Origins[size]
             public Dictionary<char, SpriteFont.Glyph> Glyphs { get; }
+            /// <summary>The manager the font came from. A handle from an earlier one is stale: its glyph texture
+            /// lived on a device that is gone (<see cref="Rebind"/>).</summary>
+            public FontManager Source { get; }
 
-            public SpriteFontHandle(SpriteFont sf, float scale, float exactScale,
+            public SpriteFontHandle(FontManager source, SpriteFont sf, float scale, float exactScale,
                 int size, int fontHeight, Vector2 origin)
             {
+                Source     = source;
                 SF         = sf;
                 Scale      = scale;
                 ExactScale = exactScale;
@@ -55,7 +59,8 @@ namespace MGUI.Shared.Text.Engines
         }
 
         /// <summary>Resolves fonts from <paramref name="fontManager"/> from now on and drops every cached resolution:
-        /// the old fonts' textures live on a device that is gone (<see cref="MainRenderer.RebindDevice"/>).</summary>
+        /// the old fonts' textures live on a device that is gone (<see cref="Rendering.MainRenderer.RebindDevice"/>).
+        /// A <see cref="ResolvedFont"/> handed out before this call heals on its next use (<see cref="GetHandle"/>).</summary>
         public void Rebind(FontManager fontManager)
         {
             _fontManager = fontManager ?? throw new System.ArgumentNullException(nameof(fontManager));
@@ -107,7 +112,7 @@ namespace MGUI.Shared.Text.Engines
                 return placeholder;
             }
 
-            var handle = new SpriteFontHandle(sf, suggestedScale, exactScale, actualSize,
+            var handle = new SpriteFontHandle(_fontManager, sf, suggestedScale, exactScale, actualSize,
                 fs.Heights[actualSize], fs.Origins[actualSize]);
 
             // Use exactScale for all measurements so that layout/wrapping matches the original
@@ -135,14 +140,23 @@ namespace MGUI.Shared.Text.Engines
 
         /// <summary>
         /// Returns the <see cref="SpriteFontHandle"/> for <paramref name="font"/>.
-        /// If the <see cref="ResolvedFont"/> was created by a different engine (e.g. after
-        /// toggling backends at runtime), the font is transparently re-resolved using its
-        /// <see cref="ResolvedFont.Spec"/> so the caller always gets a valid SpriteFont handle.
+        /// A font resolved before a <see cref="Rebind"/> is resolved again from its <see cref="ResolvedFont.Spec"/>
+        /// and repaired in place: elements keep their <see cref="ResolvedFont"/>s, and the ones not on screen at the
+        /// rebind (a closed window's text blocks, a combo box's dropdown) are never told to refresh — without this
+        /// they drew glyphs from a texture of the old device. If the <see cref="ResolvedFont"/> was created by a
+        /// different engine (e.g. after toggling backends at runtime), the font is re-resolved the same way, the
+        /// caller's object left as it is.
         /// </summary>
         private SpriteFontHandle GetHandle(ResolvedFont font)
         {
             if (font.NativeFont is SpriteFontHandle h)
-                return h;
+            {
+                if (ReferenceEquals(h.Source, _fontManager))
+                    return h;
+                SpriteFontHandle fresh = ResolveFont(font.Spec).NativeFont as SpriteFontHandle;
+                font.NativeFont = fresh;
+                return fresh;
+            }
             // Stale handle from another engine — re-resolve via spec.
             return ResolveFont(font.Spec).NativeFont as SpriteFontHandle;
         }
