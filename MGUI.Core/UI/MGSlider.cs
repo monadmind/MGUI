@@ -562,8 +562,13 @@ namespace MGUI.Core.UI
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private bool _AcceptsMouseScrollWheel;
-        /// <summary>If true, the slider value can be modified by using the mouse scroll wheel while hovering the number line portion.<para/>
-        /// Default value: false</summary>
+        /// <summary>If true, the mouse scroll wheel modifies <see cref="Value"/> while the mouse is over the visible part of this <see cref="MGSlider"/>
+        /// (the same hit-test a click passes: not clipped away by an ancestor such as an <see cref="MGScrollViewer"/>, not covered by another window or overlay).<br/>
+        /// Each notch (120 units of scroll wheel delta, positive = wheel up) adds <see cref="DiscreteValueInterval"/> if <see cref="UseDiscreteValues"/> is true and <see cref="DiscreteValueInterval"/> is positive,
+        /// else 5% of <see cref="Interval"/> (proportionally less for smooth-scrolling devices).<br/>
+        /// The scroll event is always consumed while hovered, even at <see cref="Minimum"/> or <see cref="Maximum"/>, so an enclosing <see cref="MGScrollViewer"/> does not scroll.
+        /// A disabled slider, or one whose window or an ancestor window has a <see cref="MGWindow.ModalWindow"/> open outside it, neither changes nor consumes the event.<para/>
+        /// Default value: true</summary>
         public bool AcceptsMouseScrollWheel
         {
             get => _AcceptsMouseScrollWheel;
@@ -628,7 +633,7 @@ namespace MGUI.Core.UI
                 else
                     throw new NotImplementedException($"Unrecognized {nameof(Orientation)}: {Orientation}");
 
-                AcceptsMouseScrollWheel = false;
+                AcceptsMouseScrollWheel = true;
 
                 MouseHandler.LMBReleasedInside += (sender, e) =>
                 {
@@ -666,20 +671,16 @@ namespace MGUI.Core.UI
                         HandleSliderInput(ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, e.Position).ToVector2());
                 };
 
+                //  Scrolled is raised, like a click, only for an unhandled event inside ActualLayoutBounds while this slider can receive mouse input.
+                //  The extra checks cover where a click is taken away but the wheel is not: an ancestor scroll viewer's scrollbars and padding,
+                //  a modal window on this or an ancestor window, a modal MGOverlayHost overlay over this slider.
                 MouseHandler.Scrolled += (sender, e) =>
                 {
-                    if (AcceptsMouseScrollWheel && IsHoveringNumberLine && DiscreteValueInterval.HasValue)
+                    if (AcceptsMouseScrollWheel && !IsBlockedByModalWindow() && !IsCoveredByModalOverlay() && IsInsideAncestorViewports(e.Position))
                     {
-                        if (e.ScrollWheelDelta < 0 && !this.Value.IsAlmostEqual(Minimum))
-                        {
-                            SetValue(this.Value - DiscreteValueInterval.Value);
-                            e.SetHandledBy(this, false);
-                        }
-                        else if (e.ScrollWheelDelta > 0 && !this.Value.IsAlmostEqual(Maximum))
-                        {
-                            SetValue(this.Value + DiscreteValueInterval.Value);
-                            e.SetHandledBy(this, false);
-                        }
+                        SetValue(this.Value + GetScrollWheelStep(e.ScrollWheelDelta));
+                        //  Consumed even when clamped at Minimum/Maximum, so the enclosing scroll viewer never scrolls under the cursor
+                        e.SetHandledBy(this, false);
                     }
                 };
             }
@@ -720,6 +721,62 @@ namespace MGUI.Core.UI
             }
             else
                 throw new NotImplementedException($"Unrecognized {nameof(Orientation)}: {Orientation}");
+        }
+
+        /// <summary>Scroll wheel delta of one wheel notch (<see cref="Microsoft.Xna.Framework.Input.MouseState.ScrollWheelValue"/> units).</summary>
+        private const float ScrollWheelNotch = 120f;
+        /// <summary>Fraction of <see cref="Interval"/> that one wheel notch moves a continuous slider.</summary>
+        private const float ContinuousScrollWheelFraction = 0.05f;
+
+        /// <summary>The change in <see cref="Value"/> for the given mouse scroll wheel delta (positive = wheel up = increase).<br/>
+        /// Discrete: whole <see cref="DiscreteValueInterval"/>s, at least one, the delta rounded to notches. Continuous: proportional to the delta.</summary>
+        private float GetScrollWheelStep(int ScrollWheelDelta)
+        {
+            if (UseDiscreteValues && DiscreteValueInterval > 0)
+            {
+                int Notches = Math.Max(1, (int)Math.Round(Math.Abs(ScrollWheelDelta) / ScrollWheelNotch, MidpointRounding.AwayFromZero));
+                return Math.Sign(ScrollWheelDelta) * Notches * DiscreteValueInterval.Value;
+            }
+            else
+                return ScrollWheelDelta / ScrollWheelNotch * ContinuousScrollWheelFraction * Interval;
+        }
+
+        /// <summary>True if a <see cref="MGWindow.ModalWindow"/> takes clicks away from this slider: one on its own window, or on an ancestor window
+        /// unless the slider lives inside that modal (the window the walk came from).</summary>
+        private bool IsBlockedByModalWindow()
+        {
+            MGWindow Child = null;
+            for (MGWindow Current = ParentWindow; Current != null; Child = Current, Current = Current.ParentWindow)
+            {
+                if (Current.HasModalWindow && Current.ModalWindow != Child)
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>True if an ancestor <see cref="MGOverlayHost"/> shows a modal overlay over the <see cref="Containers.MGSingleContentHost.Content"/> that holds this <see cref="MGSlider"/>
+        /// (its overlay presenter takes every click there). A slider inside the overlay itself reaches the host through the presenter, not through Content, so it is not covered.</summary>
+        private bool IsCoveredByModalOverlay()
+        {
+            for (MGElement Child = this, Ancestor = Parent; Ancestor != null; Child = Ancestor, Ancestor = Ancestor.Parent)
+            {
+                if (Ancestor is MGOverlayHost Host && Host.IsModal && Host.ActiveOverlay != null && Host.Content == Child)
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>True if the given screen-space position lies inside the <see cref="MGScrollViewer.ContentViewport"/> of every ancestor <see cref="MGScrollViewer"/>.<br/>
+        /// <see cref="MGElement.ActualLayoutBounds"/> is only cut to each ancestor's whole bounds, which include its scrollbars and padding; content under those is clipped away.</summary>
+        private bool IsInsideAncestorViewports(Point ScreenPosition)
+        {
+            for (MGElement Ancestor = Parent; Ancestor != null; Ancestor = Ancestor.Parent)
+            {
+                if (Ancestor is MGScrollViewer ScrollViewer &&
+                    !ScrollViewer.ContentViewport.Contains(ScrollViewer.ConvertCoordinateSpace(CoordinateSpace.Screen, CoordinateSpace.Layout, ScreenPosition)))
+                    return false;
+            }
+            return true;
         }
 
         public override Thickness MeasureSelfOverride(Size AvailableSize, out Thickness SharedSize)
