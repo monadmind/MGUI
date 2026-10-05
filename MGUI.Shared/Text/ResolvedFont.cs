@@ -48,9 +48,11 @@ namespace MGUI.Shared.Text
         /// Opaque native font handle owned by the backend (e.g. a <c>SpriteFontHandle</c>
         /// for <c>SpriteFontTextEngine</c>, or an FSS wrapper for <c>FontStashSharpTextEngine</c>).
         /// This property is intended for backend implementations only — do not inspect or cast
-        /// it outside of the engine that created this <see cref="ResolvedFont"/>.
+        /// it outside of the engine that created this <see cref="ResolvedFont"/>. The engine replaces it when the
+        /// handle has gone stale (the SpriteFont engine after a device rebind), so a holder of this object keeps
+        /// drawing with current fonts.
         /// </summary>
-        public object NativeFont { get; }
+        public object NativeFont { get; internal set; }
 
         /// <param name="nativeFont">Backend-specific object (e.g. <c>SpriteFont</c> or <c>SpriteFontBase</c>).
         /// Pass <c>null</c> when no native font is applicable (e.g. in headless test engines).</param>
